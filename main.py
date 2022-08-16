@@ -25,7 +25,11 @@ pygame.display.set_icon(icon)
 #Images
 background_1 = pygame.image.load("assets/background-day.png")
 background_2 = pygame.image.load("assets/background-night.png")
-background = random.choice([background_2, background_1])
+bg_list = [background_1, background_2]
+background = bg_list[0]
+
+slider_list = [pygame.image.load("assets/slider_left.png"), pygame.image.load("assets/slider_right.png")]
+
 base = pygame.image.load("assets/base.png")
 game_over_icon = pygame.image.load("assets/gameover.png")
 message = pygame.image.load("assets/message.png")
@@ -45,6 +49,8 @@ nine = pygame.image.load("assets/9.png")
 base_x = 0
 highscore = 0
 clock = pygame.time.Clock()
+
+flap = 0
 
 if background == background_2:
 	fps = 6
@@ -70,8 +76,11 @@ bird_yellow = [
 		pygame.image.load("assets/yellowbird-midflap.png"), 
 		pygame.image.load("assets/yellowbird-upflap.png"),  
 		pygame.image.load("assets/yellowbird-midflap.png")
-		]		
-bird = random.choice([bird_blue, bird_red, bird_yellow])
+		]	
+
+bird_list = [bird_blue, bird_red, bird_yellow]
+	
+bird = random.choice(bird_list)
 
 player_height = 24
 player_width = 34
@@ -80,8 +89,9 @@ player_width = 34
 #Pipes
 pipe_1 =  pygame.image.load("assets/pipe-green-down.png"),	
 pipe_2 =  pygame.image.load("assets/pipe-red-down.png"),
+pipe_list = [pipe_1, pipe_2]
 		
-# pipe = random.choice([pipe_1, pipe_2])
+pipe = random.choice(pipe_list)
 pipe_x = 288
 pipe_y = random.randint(192, 410)
 
@@ -110,6 +120,17 @@ def display_gameover():
 def display_number(img, x, y):
 	screen.blit(img, (x, y))
 
+def changeBird():
+	global bird
+	bird = bird_list[(bird_list.index(bird)+1) % len(bird_list)]
+
+def changeBackground():
+	global background
+	background = bg_list[(bg_list.index(background) + 1) % len(bg_list)]
+
+def changePipe():
+	global pipe
+	pipe = pipe_list[(pipe_list.index(pipe)+1) % len(pipe_list)]
 
 def pause_menu():
 	run_pause = True
@@ -188,6 +209,9 @@ def import_highscore():
 			highscore = score
 	file.close()
 
+def drawSlider(index):
+	screen.blit(slider_list[index], (250, 3))
+
 
 import_highscore()
 
@@ -232,15 +256,14 @@ def play_game():
 	global background
 	global bird
 	b_select = 0
- 
+
 	rotation = 0
 	f = 0
-	background = random.choice([background_1, background_2])
-	bird = random.choice([bird_blue, bird_red, bird_yellow])
+	# background = random.choice([background_1, background_2])
 	if background == background_2:
 		fps = 240
 	else:
-		fps = 240
+		fps = 250
 	global jump
 	global player_y
 	global player_speed
@@ -248,7 +271,7 @@ def play_game():
 	global pipe_y
 	global run
 	global pipe
-	pipe = random.choice([pipe_1, pipe_2])
+	# pipe = random.choice(pipe_list)
 	
 
 	pipe_x = 288
@@ -307,7 +330,10 @@ def play_game():
 			initial_velocity += 0.0008 * t
 			
     
-   
+		if background == background_1:
+			flap = 20
+		else:
+			flap = 50
    
 		#Border Collision
 		if player_y >= 488:
@@ -329,7 +355,7 @@ def play_game():
 		else:
 			pipe_x -= 1
 
-		b_select += 1 if f % 50 == 0 else 0
+		b_select += 1 if f % flap == 0 else 0
   
 		if rotation <= -60:
 			pass
@@ -355,12 +381,50 @@ def main_menu():
 	global run_menu
 	run_menu = True
 	global player_x
+	global pipe_1
 
+	mouse_pressed = False
+	bird_pressed = False
+	pipe_pressed = False
+	slider_pressed = False
 
 	t = 0
 	b_select = 0
+
 	while run_menu:
 		t += 1
+		if pygame.mouse.get_pressed(num_buttons=3)[0] :
+			mouse_x , mouse_y = pygame.mouse.get_pos()
+			bird_pressed = mouse_x >= 127 and mouse_x <= 127 + player_width and mouse_y >= 100 and mouse_y <= 100 + player_height
+			slider_pressed = mouse_x >= 250 and mouse_x <= 250 + 32 and mouse_y >= 3 and mouse_y <= 3 + 32
+			pipe_pressed = mouse_x >= 118 and mouse_x <= 118 + 52 and mouse_y >= 0 and mouse_y <= 0 + 70
+
+			if (bird_pressed) or (slider_pressed) or pipe_pressed:
+				mouse_pressed = True
+				# print("change\n")
+				# print(mouse_x, mouse_y)
+		
+			
+		if mouse_pressed and not pygame.mouse.get_pressed(num_buttons = 3)[0]:
+			mouse_pressed = False
+			mouse_x , mouse_y = pygame.mouse.get_pos()
+
+			bird_pressed = mouse_x >= 127 and mouse_x <= 127 + player_width and mouse_y >= 100 and mouse_y <= 100 + player_height
+			slider_pressed = mouse_x >= 250 and mouse_x <= 250 + 32 and mouse_y >= 3 and mouse_y <= 3 + 32
+			pipe_pressed = mouse_x >= 118 and mouse_x <= 118 + 52 and mouse_y >= 0 and mouse_y <= 0 + 70
+
+			if bird_pressed :
+				changeBird()
+			elif slider_pressed:
+				changeBackground()
+			elif pipe_pressed:
+				changePipe()
+		
+		if background == background_1:
+			flap = 35
+		else:
+			flap = 100
+		
 		for event in pygame.event.get():
 			#Exit
 			if event.type == pygame.QUIT:
@@ -371,14 +435,16 @@ def main_menu():
 				else:
 					play_game()
 		
-		b_select += 1 if t % 100 ==0 else 0
+		b_select += 1 if t % flap ==0 else 0
 		import_highscore()
 		load_bg()
 		load_base()
 		screen.blit(message, (52, 178.5))
 		show_score(highscore, 550)
 		draw_bird(127, 100, b_select, 0)
-
+		drawSlider(bg_list.index(background))
+		# screen.blit(pygame.transform.scale(pygame.transform.flip(pipe[0], 0, 1), (10, 100)), (0, 0))
+		screen.blit(pygame.transform.flip(pipe[0], 0, 1), (118, -250))
 		update_screen()
 
 
